@@ -1,43 +1,54 @@
-"""Auth endpoints: register, login."""
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from passlib.context import CryptContext
 
 from backend.app.database import get_db
 from backend.app.models.user import User
-from backend.app.schemas.user import UserCreate, UserResponse, Token
-from backend.app.core.security import get_password_hash, verify_password, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-@router.post("/register", response_model=UserResponse)
-def register(data: UserCreate, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == data.email).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(password: str, hash: str) -> bool:
+    return pwd_context.verify(password, hash)
+
+
+@router.post("/register")
+def register(data: dict, db: Session = Depends(get_db)):
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password required")
+
+    existing = db.query(User).filter(User.email == email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="User already exists")
+
     user = User(
-        email=data.email,
-        hashed_password=get_password_hash(data.password),
+        email=email,
+        password_hash=hash_password(password)
     )
+
     db.add(user)
-    db.commit()
+    db.commit()          # ← КРИТИЧЕСКИ ВАЖНО
     db.refresh(user)
-    return user
+
+    return {"id": user.id, "email": user.email}
 
 
-@router.post("/login", response_model=Token)
-def login(data: UserCreate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
-    if not user or not verify_password(data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-    token = create_access_token(data={"sub": str(user.id)})
-    return Token(
-        access_token=token,
-        token_type="bearer",
-        user=UserResponse(id=user.id, email=user.email),
-    )
+@router.post("/login")
+def login(data: dict, db: Session = Depends(get_db)):
+    email = data.get("email")
+    password = data.get("password")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not verify_password(password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+
+    return {"message": "login ok"}
