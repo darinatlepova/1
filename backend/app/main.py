@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.config import CORS_ORIGINS
-from app.database import init_db
-from app.api import auth, tasks
+from backend.app.database import init_db
+from backend.app.api import auth, tasks
 
 
 @asynccontextmanager
