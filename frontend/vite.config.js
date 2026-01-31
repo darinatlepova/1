@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://front-task--progress-tracker-mvp-arrive.fin1.bult.app',
         changeOrigin: true,
       },
     },
