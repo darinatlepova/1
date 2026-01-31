@@ -37,3 +37,8 @@ app.include_router(tasks.router, prefix="/api")
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
