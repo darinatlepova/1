@@ -1,9 +1,12 @@
+from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
+from jose import jwt
 
 from backend.app.database import get_db
 from backend.app.models.user import User
+from backend.app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -11,7 +14,6 @@ pwd_context = CryptContext(
     schemes=["pbkdf2_sha256"],
     deprecated="auto"
 )
-
 
 
 def hash_password(password: str) -> str:
@@ -22,6 +24,13 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return pwd_context.verify(password, hashed_password)
 
 
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    expire = expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
 @router.post("/register")
 def register(data: dict, db: Session = Depends(get_db)):
     email = data.get("email")
@@ -30,13 +39,12 @@ def register(data: dict, db: Session = Depends(get_db)):
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password required")
 
-    existing = db.query(User).filter(User.email == email).first()
-    if existing:
+    if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="User already exists")
 
     user = User(
         email=email,
-        hashed_password=hash_password(password)  # ← ВАЖНО
+        hashed_password=hash_password(password)
     )
 
     db.add(user)
@@ -55,8 +63,15 @@ def login(data: dict, db: Session = Depends(get_db)):
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
-    return {
-    "id": user.id,
-    "email": user.email
-}
+    access_token = create_access_token(
+        data={"sub": str(user.id)}
+    )
 
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email
+        }
+    }
