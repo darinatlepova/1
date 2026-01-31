@@ -2,13 +2,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models.user import User
-from app.models.task import Task, TaskStatus as TaskStatusEnum
-from app.models.task_history import TaskHistory, TaskHistoryChangeType
-from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
-from app.schemas.task_history import TaskHistoryResponse
-from app.core.dependencies import get_current_user
+from backend.app.database import get_db
+from backend.app.models.user import User
+from backend.app.models.task import Task, TaskStatus as TaskStatusEnum
+from backend.app.models.task_history import TaskHistory, TaskHistoryChangeType
+from backend.app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
+from backend.app.schemas.task_history import TaskHistoryResponse
+from backend.app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
