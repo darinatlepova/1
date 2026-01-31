@@ -14,8 +14,8 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def verify_password(password: str, hashed: str) -> bool:
-    return pwd_context.verify(password, hashed)
+def verify_password(password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(password, hashed_password)
 
 
 @router.post("/register")
@@ -32,7 +32,7 @@ def register(data: dict, db: Session = Depends(get_db)):
 
     user = User(
         email=email,
-        hashed_password=hash_password(password),
+        hashed_password=hash_password(password)  # ← ВАЖНО
     )
 
     db.add(user)
