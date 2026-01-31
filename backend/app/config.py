@@ -1,18 +1,17 @@
 """Application configuration."""
 import os
 
-# === Security ===
-SECRET_KEY: str = os.getenv(
+SECRET_KEY = os.getenv(
     "SECRET_KEY",
     "change-me-in-production-use-long-random-string"
 )
-ALGORITHM: str = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")  # 24h
+
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
 )
 
-# === Database ===
-DATABASE_URL: str = os.getenv(
+DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "sqlite:////app/db.sqlite3"
 )
@@ -24,10 +23,7 @@ CONNECT_ARGS = (
     else {}
 )
 
-# === CORS ===
-CORS_ORIGINS: list[str] = os.getenv(
+CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:5173,"
-    "http://localhost:8000,"
-    "https://front-task--progress-tracker-mvp-arrive.fin1.bult.app"
+    "http://localhost:5173"
 ).split(",")
