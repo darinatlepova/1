@@ -41,7 +41,8 @@ export function AuthProvider({ children }) {
     setToken(null)
   }, [setToken])
 
-  const isAuthenticated = !!token
+  const isAuthenticated = !!user
+
 
   const value = {
     token,
