@@ -1,19 +1,24 @@
-"""Task CRUD and history endpoints."""
+"""Task CRUD and history endpoints (MVP without auth)."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
-from backend.app.models.user import User
 from backend.app.models.task import Task, TaskStatus as TaskStatusEnum
 from backend.app.models.task_history import TaskHistory, TaskHistoryChangeType
 from backend.app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from backend.app.schemas.task_history import TaskHistoryResponse
-from backend.app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-def _record_history(db: Session, task_id: int, change_type: TaskHistoryChangeType, old_value: str | None, new_value: str):
+def _record_history(
+    db: Session,
+    task_id: int,
+    change_type: TaskHistoryChangeType,
+    old_value: str | None,
+    new_value: str,
+):
     entry = TaskHistory(
         task_id=task_id,
         change_type=change_type,
@@ -37,11 +42,8 @@ def _task_to_response(task: Task) -> TaskResponse:
 
 
 @router.get("", response_model=list[TaskResponse])
-def list_tasks(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    tasks = db.query(Task).filter(Task.user_id == current_user.id).order_by(Task.updated_at.desc()).all()
+def list_tasks(db: Session = Depends(get_db)):
+    tasks = db.query(Task).order_by(Task.updated_at.desc()).all()
     return [_task_to_response(t) for t in tasks]
 
 
@@ -49,10 +51,8 @@ def list_tasks(
 def create_task(
     data: TaskCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     task = Task(
-        user_id=current_user.id,
         title=data.title,
         description=data.description or None,
     )
@@ -66,11 +66,10 @@ def create_task(
 def get_task(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == current_user.id).first()
+    task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Task not found")
     return _task_to_response(task)
 
 
@@ -79,26 +78,38 @@ def update_task(
     task_id: int,
     data: TaskUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == current_user.id).first()
+    task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Task not found")
 
     if data.title is not None:
         task.title = data.title
+
     if data.description is not None:
         task.description = data.description
 
     if data.status is not None:
         new_status = TaskStatusEnum(data.status)
         if task.status != new_status:
-            _record_history(db, task.id, TaskHistoryChangeType.STATUS, task.status.value, new_status.value)
+            _record_history(
+                db,
+                task.id,
+                TaskHistoryChangeType.STATUS,
+                task.status.value,
+                new_status.value,
+            )
             task.status = new_status
 
     if data.progress is not None:
         if task.progress != data.progress:
-            _record_history(db, task.id, TaskHistoryChangeType.PROGRESS, str(task.progress), str(data.progress))
+            _record_history(
+                db,
+                task.id,
+                TaskHistoryChangeType.PROGRESS,
+                str(task.progress),
+                str(data.progress),
+            )
             task.progress = data.progress
 
     db.commit()
@@ -110,11 +121,10 @@ def update_task(
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == current_user.id).first()
+    task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Task not found")
     db.delete(task)
     db.commit()
     return None
@@ -124,11 +134,11 @@ def delete_task(
 def get_task_history(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == current_user.id).first()
+    task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Task not found")
+
     return [
         TaskHistoryResponse(
             id=h.id,
