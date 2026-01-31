@@ -7,7 +7,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 
 
 DATABASE_URL: str = os.getenv(
     "DATABASE_URL",
-    "sqlite:///./app.db",
+    sqlite:////app/db.sqlite3,
 )
 # SQLite needs check_same_thread=False
 CONNECT_ARGS = {} if "sqlite" not in DATABASE_URL else {"check_same_thread": False}
