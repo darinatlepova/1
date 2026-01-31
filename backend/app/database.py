@@ -1,10 +1,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from backend.app.config import DATABASE_URL, CONNECT_ARGS
 
-engine = create_engine(DATABASE_URL, connect_args=CONNECT_ARGS)
+DATABASE_URL = "sqlite:////app/db.sqlite3"
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False}
+)
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
 Base = declarative_base()
 
@@ -15,8 +23,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-def init_db():
-    from backend.app import models
-    Base.metadata.create_all(bind=engine)
