@@ -41,5 +41,3 @@ def health():
 @app.get("/")
 def root():
     return {"message": "API is running"}
-
-
