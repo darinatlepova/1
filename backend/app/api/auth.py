@@ -14,8 +14,8 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def verify_password(password: str, hash: str) -> bool:
-    return pwd_context.verify(password, hash)
+def verify_password(password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(password, hashed_password)
 
 
 @router.post("/register")
@@ -32,11 +32,11 @@ def register(data: dict, db: Session = Depends(get_db)):
 
     user = User(
         email=email,
-        password_hash=hash_password(password)
+        hashed_password=hash_password(password)  # ← ВАЖНО
     )
 
     db.add(user)
-    db.commit()          # ← КРИТИЧЕСКИ ВАЖНО
+    db.commit()
     db.refresh(user)
 
     return {"id": user.id, "email": user.email}
@@ -48,7 +48,7 @@ def login(data: dict, db: Session = Depends(get_db)):
     password = data.get("password")
 
     user = db.query(User).filter(User.email == email).first()
-    if not user or not verify_password(password, user.password_hash):
+    if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
     return {"message": "login ok"}
