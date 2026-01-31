@@ -55,4 +55,8 @@ def login(data: dict, db: Session = Depends(get_db)):
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
-    return {"message": "login ok"}
+    return {
+    "id": user.id,
+    "email": user.email
+}
+
