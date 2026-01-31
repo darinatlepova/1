@@ -13,21 +13,21 @@ export default function Login() {
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      const res = await apiLogin(email, password)
-      login(res.access_token, res.user)
-      setAuthToken(res.access_token)
-      navigate('/')
-    } catch (err) {
-      const msg = err.response?.data?.detail ?? 'Ошибка входа'
-      setError(Array.isArray(msg) ? msg.map(m => m.msg).join(', ') : msg)
-    } finally {
-      setLoading(false)
-    }
+  e.preventDefault()
+  setError('')
+  setLoading(true)
+  try {
+    const res = await apiLogin(email, password)
+    login(null, res)          // ← ВАЖНО
+    navigate('/')
+  } catch (err) {
+    const msg = err.response?.data?.detail ?? 'Ошибка входа'
+    setError(Array.isArray(msg) ? msg.map(m => m.msg).join(', ') : msg)
+  } finally {
+    setLoading(false)
   }
+}
+
 
   return (
     <div className={styles.wrap}>
