@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { setAuthToken } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -17,16 +18,21 @@ export function AuthProvider({ children }) {
   })
   const [loading, setLoading] = useState(true)
 
+  // 🔥 СИНХРОНИЗАЦИЯ ТОКЕНА С AXIOS
   useEffect(() => {
+    setAuthToken(token)
     setLoading(false)
-  }, [])
+  }, [token])
 
   const setToken = useCallback((newToken, newUser) => {
     setTokenState(newToken)
     setUser(newUser ?? null)
+
     if (newToken) {
       localStorage.setItem(TOKEN_KEY, newToken)
-      if (newUser) localStorage.setItem(USER_KEY, JSON.stringify(newUser))
+      if (newUser) {
+        localStorage.setItem(USER_KEY, JSON.stringify(newUser))
+      }
     } else {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
@@ -41,21 +47,19 @@ export function AuthProvider({ children }) {
     setToken(null)
   }, [setToken])
 
-  const isAuthenticated = !!user
-
-
-  const value = {
-    token,
-    user,
-    loading,
-    login,
-    logout,
-    isAuthenticated,
-    setToken,
-  }
+  const isAuthenticated = Boolean(token)
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={{
+        token,
+        user,
+        loading,
+        login,
+        logout,
+        isAuthenticated,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -63,6 +67,8 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  if (!ctx) {
+    throw new Error('useAuth must be used within AuthProvider')
+  }
   return ctx
 }
