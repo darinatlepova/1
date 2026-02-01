@@ -20,9 +20,12 @@ export function AuthProvider({ children }) {
 
   // 🔥 СИНХРОНИЗАЦИЯ ТОКЕНА С AXIOS
   useEffect(() => {
+  if (token) {
     setAuthToken(token)
-    setLoading(false)
-  }, [token])
+  }
+  setLoading(false)
+}, [])
+
 
   const setToken = useCallback((newToken, newUser) => {
     setTokenState(newToken)
