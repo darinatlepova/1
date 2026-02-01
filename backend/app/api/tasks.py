@@ -1,4 +1,4 @@
-"""Task CRUD and history endpoints (MVP without auth)."""
+"""Task CRUD and history endpoints (with auth)."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -8,6 +8,8 @@ from backend.app.models.task import Task, TaskStatus as TaskStatusEnum
 from backend.app.models.task_history import TaskHistory, TaskHistoryChangeType
 from backend.app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from backend.app.schemas.task_history import TaskHistoryResponse
+from backend.app.models.user import User
+from backend.app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -41,20 +43,32 @@ def _task_to_response(task: Task) -> TaskResponse:
     )
 
 
+# -------------------- LIST --------------------
 @router.get("", response_model=list[TaskResponse])
-def list_tasks(db: Session = Depends(get_db)):
-    tasks = db.query(Task).order_by(Task.updated_at.desc()).all()
+def list_tasks(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    tasks = (
+        db.query(Task)
+        .filter(Task.user_id == current_user.id)
+        .order_by(Task.updated_at.desc())
+        .all()
+    )
     return [_task_to_response(t) for t in tasks]
 
 
+# -------------------- CREATE --------------------
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(
     data: TaskCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     task = Task(
         title=data.title,
-        description=data.description or None,
+        description=data.description,
+        user_id=current_user.id,  # ✅ КЛЮЧЕВАЯ СТРОКА
     )
     db.add(task)
     db.commit()
@@ -62,24 +76,36 @@ def create_task(
     return _task_to_response(task)
 
 
+# -------------------- GET ONE --------------------
 @router.get("/{task_id}", response_model=TaskResponse)
 def get_task(
     task_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id).first()
+    task = (
+        db.query(Task)
+        .filter(Task.id == task_id, Task.user_id == current_user.id)
+        .first()
+    )
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return _task_to_response(task)
 
 
+# -------------------- UPDATE --------------------
 @router.put("/{task_id}", response_model=TaskResponse)
 def update_task(
     task_id: int,
     data: TaskUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id).first()
+    task = (
+        db.query(Task)
+        .filter(Task.id == task_id, Task.user_id == current_user.id)
+        .first()
+    )
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -117,25 +143,38 @@ def update_task(
     return _task_to_response(task)
 
 
+# -------------------- DELETE --------------------
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id).first()
+    task = (
+        db.query(Task)
+        .filter(Task.id == task_id, Task.user_id == current_user.id)
+        .first()
+    )
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
     db.delete(task)
     db.commit()
     return None
 
 
+# -------------------- HISTORY --------------------
 @router.get("/{task_id}/history", response_model=list[TaskHistoryResponse])
 def get_task_history(
     task_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id).first()
+    task = (
+        db.query(Task)
+        .filter(Task.id == task_id, Task.user_id == current_user.id)
+        .first()
+    )
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
