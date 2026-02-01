@@ -14,21 +14,26 @@ export default function Login() {
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  e.preventDefault()
+  setError('')
+  setLoading(true)
 
-    try {
-      const res = await apiLogin(email, password)
-      login(res.access_token, res.user)
-      navigate('/')
-    } catch (err) {
-      const msg = err.response?.data?.detail ?? 'Ошибка входа'
-      setError(msg)
-    } finally {
-      setLoading(false)
-    }
+  try {
+    const res = await apiLogin(email, password)
+
+    // 🔥 ВАЖНО
+    setAuthToken(res.access_token)
+    login(res.access_token, res.user)
+
+    navigate('/')
+  } catch (err) {
+    const msg = err.response?.data?.detail ?? 'Ошибка входа'
+    setError(msg)
+  } finally {
+    setLoading(false)
   }
+}
+
 
   return (
     <div className={styles.wrap}>
