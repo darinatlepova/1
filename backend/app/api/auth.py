@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -10,7 +8,6 @@ from backend.app.core.security import (
     get_password_hash,
     create_access_token,
 )
-from backend.app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -58,9 +55,9 @@ def login(data: dict, db: Session = Depends(get_db)):
             detail="Incorrect email or password",
         )
 
+    # ✅ БЕЗ expires_delta
     access_token = create_access_token(
-        data={"sub": str(user.id)},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        data={"sub": str(user.id)}
     )
 
     return {
