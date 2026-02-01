@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,7 @@ from backend.app.core.security import (
     get_password_hash,
     create_access_token,
 )
+from backend.app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -20,7 +23,8 @@ def register(data: dict, db: Session = Depends(get_db)):
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password required")
 
-    if db.query(User).filter(User.email == email).first():
+    existing = db.query(User).filter(User.email == email).first()
+    if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
     user = User(
@@ -32,7 +36,10 @@ def register(data: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    return {"id": user.id, "email": user.email}
+    return {
+        "id": user.id,
+        "email": user.email,
+    }
 
 
 @router.post("/login")
@@ -40,7 +47,11 @@ def login(data: dict, db: Session = Depends(get_db)):
     email = data.get("email")
     password = data.get("password")
 
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password required")
+
     user = db.query(User).filter(User.email == email).first()
+
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -48,7 +59,8 @@ def login(data: dict, db: Session = Depends(get_db)):
         )
 
     access_token = create_access_token(
-        data={"sub": str(user.id)}  # ← ВАЖНО
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
     return {
