@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { login as apiLogin, setAuthToken } from '../services/api'
+import { login as apiLogin } from '../services/api'
 import styles from './Auth.module.css'
 
 export default function Login() {
@@ -9,25 +9,26 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
   const { login } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
-  e.preventDefault()
-  setError('')
-  setLoading(true)
-  try {
-    const res = await apiLogin(email, password)
-    login(null, res)          // ← ВАЖНО
-    navigate('/')
-  } catch (err) {
-    const msg = err.response?.data?.detail ?? 'Ошибка входа'
-    setError(Array.isArray(msg) ? msg.map(m => m.msg).join(', ') : msg)
-  } finally {
-    setLoading(false)
-  }
-}
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
+    try {
+      const res = await apiLogin(email, password)
+      login(res.access_token, res.user)
+      navigate('/')
+    } catch (err) {
+      const msg = err.response?.data?.detail ?? 'Ошибка входа'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className={styles.wrap}>
@@ -35,6 +36,7 @@ export default function Login() {
         <h1 className={styles.title}>Вход</h1>
         <form onSubmit={handleSubmit} className={styles.form}>
           {error && <div className={styles.error}>{error}</div>}
+
           <label className={styles.label}>
             Email
             <input
@@ -42,10 +44,10 @@ export default function Login() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              autoComplete="email"
               className={styles.input}
             />
           </label>
+
           <label className={styles.label}>
             Пароль
             <input
@@ -53,14 +55,15 @@ export default function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
               className={styles.input}
             />
           </label>
+
           <button type="submit" className={styles.submit} disabled={loading}>
             {loading ? 'Вход...' : 'Войти'}
           </button>
         </form>
+
         <p className={styles.footer}>
           Нет аккаунта? <Link to="/register">Регистрация</Link>
         </p>
